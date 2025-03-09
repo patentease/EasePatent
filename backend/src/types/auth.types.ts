@@ -19,7 +19,7 @@ export interface User {
   firstName: string;
   lastName: string;
   password: string;
-  plan: Plan;
+  plan?: Plan;
   role: string;
   createdAt: Date;
   updatedAt: Date;

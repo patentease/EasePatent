@@ -1,78 +1,73 @@
 import express from 'express';
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
-import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import http from 'http';
 import cors from 'cors';
-import bodyParser from 'body-parser';
+import { json } from 'body-parser';
 import dotenv from 'dotenv';
-import connectDB from './config/database';
-import typeDefs from './schema';
-import resolvers from './resolvers';
-import { GraphQLError } from 'graphql';
-import jwt from 'jsonwebtoken';
-import { IUser } from './models/User';
+import path from 'path';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import { authRouter } from './routes/auth.routes';
+import { patentRouter } from './routes/patent.routes';
+import { subscriptionRouter } from './routes/subscription.routes';
+import { authenticateToken } from './middleware/auth';
 
+// Load environment variables
 dotenv.config();
 
-interface MyContext {
-  user?: IUser;
-}
-
+// Create Express app
 const app = express();
-const httpServer = http.createServer(app);
 
-// Connect to MongoDB
-connectDB();
-
-const server = new ApolloServer<MyContext>({
-  typeDefs,
-  resolvers,
-  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!require('fs').existsSync(uploadsDir)) {
+      require('fs').mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const fileId = uuidv4();
+    const ext = path.extname(file.originalname);
+    cb(null, `${fileId}${ext}`);
+  }
 });
 
-const startServer = async () => {
-  await server.start();
+export const upload = multer({ storage });
 
-  app.use(
-    '/',
-    cors<cors.CorsRequest>({
-      origin: ['http://localhost:3000', 'http://localhost:3001'],
-      credentials: true
-    }),
-    bodyParser.json(),
-    expressMiddleware(server, {
-      context: async ({ req }) => {
-        // Get the user token from the headers
-        const token = req.headers.authorization || '';
+// Configure middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(json({ limit: '50mb' }));
 
-        // Try to retrieve a user with the token
-        if (token) {
-          try {
-            const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET as string) as { id: string };
-            // Add the user to the context
-            return { user: decoded };
-          } catch (error) {
-            throw new GraphQLError('Invalid/Expired token', {
-              extensions: {
-                code: 'UNAUTHENTICATED',
-                http: { status: 401 },
-              },
-            });
-          }
-        }
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-        // Add the user to the context
-        return { user: undefined };
-      },
-    })
-  );
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
-  const port = process.env.PORT || 4000;
-  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
-  console.log(`🚀 Server ready at http://localhost:${port}/`);
-};
+// API routes
+app.use('/api/auth', authRouter);
+app.use('/api/patents', authenticateToken, patentRouter);
+app.use('/api/subscriptions', authenticateToken, subscriptionRouter);
 
-startServer().catch((err) => {
-  console.error('Error starting server:', err);
+// Error handling middleware
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || 'Internal server error',
+      code: err.code || 'INTERNAL_ERROR'
+    }
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server ready at http://localhost:${PORT}`);
+  console.log(`📁 File uploads available at http://localhost:${PORT}/uploads`);
 }); 

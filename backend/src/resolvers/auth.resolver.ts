@@ -2,7 +2,7 @@ import { ApolloError } from 'apollo-server-express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../db';
-import { RegisterInput, LoginInput, AuthPayload } from '../types/auth.types';
+import { RegisterInput, LoginInput, AuthPayload, User } from '../types/auth.types';
 import { subscriptionResolvers } from './subscription.resolver';
 
 export const authResolvers = {
@@ -21,7 +21,11 @@ export const authResolvers = {
           throw new ApolloError('User not found', 'USER_NOT_FOUND');
         }
 
-        return dbUser;
+        // Add plan field to match User interface
+        return {
+          ...dbUser,
+          plan: 'free' // Default to free plan if not specified
+        } as User;
       } catch (error) {
         console.error('Error fetching user:', error);
         throw new ApolloError('Failed to fetch user');
@@ -71,9 +75,13 @@ export const authResolvers = {
           { expiresIn: '24h' }
         );
 
+        // Add plan field to match User interface
         return {
           token,
-          user,
+          user: {
+            ...user,
+            plan: input.plan
+          } as User,
         };
       } catch (error) {
         console.error('Registration error:', error);
@@ -106,9 +114,19 @@ export const authResolvers = {
           { expiresIn: '24h' }
         );
 
+        // Get user's subscription to determine plan
+        const subscription = await prisma.subscription.findFirst({
+          where: { userId: user.id, status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        // Add plan field to match User interface
         return {
           token,
-          user,
+          user: {
+            ...user,
+            plan: subscription?.plan || 'free'
+          } as User,
         };
       } catch (error) {
         console.error('Login error:', error);

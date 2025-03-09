@@ -20,6 +20,20 @@ export interface GPTPatentAnalysis {
   recommendations: string[];
 }
 
+export interface GPTPatentDraft {
+  title: string;
+  abstract: string;
+  claims: string[];
+  description: string;
+  backgroundArt: string;
+}
+
+export interface GPTPatentRebuttal {
+  arguments: string[];
+  suggestedAmendments: string[];
+  legalPrecedents: string[];
+}
+
 export class GPT4Service {
   private static async analyzeText(prompt: string): Promise<string> {
     try {
@@ -37,125 +51,107 @@ export class GPT4Service {
     }
   }
 
+  /**
+   * Mock implementation of patent analysis
+   */
   public static async analyzePatent(
     title: string,
     description: string,
     claims: string[]
   ): Promise<GPTPatentAnalysis> {
-    const prompt = `
-      Analyze this patent information:
-      Title: ${title}
-      Description: ${description}
-      Claims: ${claims.join('\n')}
-
-      Provide a comprehensive analysis including:
-      1. Technical complexity (0-100)
-      2. Market potential (0-100)
-      3. Innovation score (0-100)
-      4. SWOT analysis
-      5. Specific recommendations for improvement
-
-      Format the response as JSON with the following structure:
-      {
-        "technicalComplexity": number,
-        "marketPotential": number,
-        "innovationScore": number,
-        "analysis": {
-          "strengths": string[],
-          "weaknesses": string[],
-          "opportunities": string[],
-          "risks": string[]
-        },
-        "recommendations": string[]
-      }
-    `;
-
-    const response = await this.analyzeText(prompt);
-    return JSON.parse(response);
+    return {
+      technicalComplexity: 75,
+      marketPotential: 5,
+      innovationScore: 80,
+      analysis: {
+        strengths: ['Innovative approach', 'Strong technical foundation'],
+        weaknesses: ['Could be more specific in claims'],
+        opportunities: ['Growing market', 'Few competitors'],
+        risks: ['Potential prior art', 'Market adoption challenges']
+      },
+      recommendations: [
+        'Add more specific examples',
+        'Strengthen independent claims',
+        'Consider additional use cases'
+      ]
+    };
   }
 
-  public static async generateImprovedClaims(
-    originalClaims: string[],
-    priorArt: string[]
-  ): Promise<string[]> {
-    const prompt = `
-      Original Patent Claims:
-      ${originalClaims.join('\n')}
-
-      Prior Art References:
-      ${priorArt.join('\n')}
-
-      Generate improved patent claims that:
-      1. Differentiate from prior art
-      2. Strengthen patent protection
-      3. Address potential weaknesses
-      4. Maintain clarity and enforceability
-
-      Format each claim separately and maintain proper claim structure.
-    `;
-
-    const response = await this.analyzeText(prompt);
-    return response.split('\n').filter(claim => claim.trim().length > 0);
+  /**
+   * Mock implementation of patent drafting
+   */
+  public static async draftPatent(
+    inventionTitle: string,
+    inventionDescription: string,
+    technicalField: string,
+    inventors: string[]
+  ): Promise<GPTPatentDraft> {
+    return {
+      title: inventionTitle,
+      abstract: `A system and method for ${inventionTitle.toLowerCase()}.`,
+      claims: [
+        `1. A method for ${inventionTitle.toLowerCase()} comprising...`,
+        '2. The method of claim 1, further comprising...'
+      ],
+      description: inventionDescription,
+      backgroundArt: `The field of ${technicalField} has seen various developments...`
+    };
   }
 
-  public static async assessPatentability(
-    invention: string,
-    priorArt: string[]
-  ): Promise<{
-    score: number;
-    analysis: string;
-    recommendations: string[];
-  }> {
-    const prompt = `
-      Analyze the patentability of this invention:
-      ${invention}
-
-      Prior Art:
-      ${priorArt.join('\n')}
-
-      Provide:
-      1. Patentability score (0-100)
-      2. Detailed analysis of novelty and non-obviousness
-      3. Specific recommendations for improving patentability
-
-      Format as JSON:
-      {
-        "score": number,
-        "analysis": string,
-        "recommendations": string[]
-      }
-    `;
-
-    const response = await this.analyzeText(prompt);
-    return JSON.parse(response);
+  /**
+   * Mock implementation of rebuttal generation
+   */
+  public static async generateRebuttal(
+    patentTitle: string,
+    claims: string[],
+    objections: string
+  ): Promise<GPTPatentRebuttal> {
+    return {
+      arguments: [
+        'The examiner has misinterpreted the scope of the claims',
+        'The cited prior art does not teach all elements'
+      ],
+      suggestedAmendments: [
+        'Amend claim 1 to clarify the technical implementation',
+        'Add dependent claims for specific embodiments'
+      ],
+      legalPrecedents: [
+        'Similar case in USPTO decision...',
+        'MPEP 2143.01 supports our position...'
+      ]
+    };
   }
 
-  public static async generateSearchStrategy(
-    invention: string
-  ): Promise<{
-    keywords: string[];
-    classifications: string[];
-    searchQueries: string[];
-  }> {
-    const prompt = `
-      Based on this invention:
-      ${invention}
+  /**
+   * Mock implementation of approval chance prediction
+   */
+  public static async predictApprovalChances(
+    title: string,
+    claims: string[],
+    priorArtReferences: Array<{ title: string; relevanceScore: number }>
+  ): Promise<{ approvalChance: number; reasonsForRejection: string[]; suggestedImprovements: string[] }> {
+    return {
+      approvalChance: 75,
+      reasonsForRejection: [
+        'Some similarity to prior art',
+        'Claims could be more specific'
+      ],
+      suggestedImprovements: [
+        'Add more technical details',
+        'Narrow the scope of independent claims'
+      ]
+    };
+  }
 
-      Generate a comprehensive patent search strategy including:
-      1. Key technical terms and synonyms
-      2. Relevant IPC/CPC classifications
-      3. Recommended search queries
-
-      Format as JSON:
-      {
-        "keywords": string[],
-        "classifications": string[],
-        "searchQueries": string[]
-      }
-    `;
-
-    const response = await this.analyzeText(prompt);
-    return JSON.parse(response);
+  /**
+   * Mock implementation of technical summary generation
+   */
+  public static async generateTechnicalSummary(
+    title: string,
+    description: string,
+    claims: string[]
+  ): Promise<string> {
+    return `Technical Summary of ${title}:\n\nThis invention provides a novel approach to solving technical challenges in the field. The key innovations include advanced processing techniques and efficient implementation methods.`;
   }
 }
 

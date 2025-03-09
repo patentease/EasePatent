@@ -19,6 +19,7 @@ model User {
   settings      UserSettings?
   subscriptions Subscription[]
   quotas        UserQuota?
+  patents       Patent[]
 }
 
 model UserSettings {
@@ -80,4 +81,38 @@ model SubscriptionPlan {
   annualPrice  Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Patent {
+  id                String      @id @default(uuid())
+  title             String
+  description       String
+  inventors         String[]
+  jurisdictions     String[]
+  technicalField    String?
+  backgroundArt     String?
+  claims            String[]
+  status            String      @default("draft")
+  ownerId           String
+  owner             User        @relation(fields: [ownerId], references: [id])
+  uniquenessScore   Float?
+  marketPotential   Float?
+  filingDate        DateTime?
+  grantDate         DateTime?
+  patentNumber      String?
+  searchReport      Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  documents         Document[]
+}
+
+model Document {
+  id                String      @id @default(uuid())
+  name              String
+  type              String
+  url               String
+  patentId          String
+  patent            Patent      @relation(fields: [patentId], references: [id])
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 } 

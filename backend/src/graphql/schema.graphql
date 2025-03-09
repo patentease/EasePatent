@@ -27,7 +27,14 @@ type AuthPayload {
   user: User!
 }
 
+type File {
+  filename: String!
+  mimetype: String!
+  encoding: String!
+}
+
 type Mutation {
   register(input: RegisterInput!): AuthPayload!
+  uploadFile(file: Upload!): File!
   # ... other mutations
 } 
